@@ -55,6 +55,3 @@ See [docs/API.md](docs/API.md) for detailed API documentation.
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for the development timeline and planned features.
 
-## License
-
-MIT
