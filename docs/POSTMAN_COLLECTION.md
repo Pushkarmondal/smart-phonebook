@@ -1,11 +1,10 @@
 # Smart Phonebook API - Postman Collection
 
-This document provides request examples for testing the Smart Phonebook API using Postman.
+This document provides request examples for testing the Smart Phonebook API using Postman, organized by resource type and operation.
 
-## Authentication
+## Quick Start Guide (In Order)
 
-### 1. Sign Up
-
+### 1. Sign Up (First Step)
 ```http
 POST http://localhost:3009/api/auth/signup
 Content-Type: application/json
@@ -17,8 +16,7 @@ Content-Type: application/json
 }
 ```
 
-### 2. Login
-
+### 2. Login (Get JWT Token)
 ```http
 POST http://localhost:3009/api/auth/login
 Content-Type: application/json
@@ -29,10 +27,7 @@ Content-Type: application/json
 }
 ```
 
-## Contacts
-
-### 1. Create Contact
-
+### 3. Create a Contact
 ```http
 POST http://localhost:3009/api/contact/create
 Content-Type: application/json
@@ -49,24 +44,7 @@ Authorization: Bearer YOUR_JWT_TOKEN
 }
 ```
 
-### 2. Get All Contacts
-
-```http
-GET http://localhost:3009/api/contact/get-all
-Authorization: Bearer YOUR_JWT_TOKEN
-```
-
-### 3. Search Contacts
-
-```http
-GET http://localhost:3009/api/contact/search?q=Jane
-Authorization: Bearer YOUR_JWT_TOKEN
-```
-
-## Global Entities
-
-### 1. Create Global Entity
-
+### 4. Create a Global Entity
 ```http
 POST http://localhost:3009/api/entity/create
 Content-Type: application/json
@@ -75,9 +53,8 @@ Authorization: Bearer YOUR_JWT_TOKEN
 {
   "name": "Tech Solutions Inc.",
   "type": "BUSINESS",
-  "description": "IT Services Company",
-  "categories": ["IT_SERVICES", "SOFTWARE"],
-  "phone": "+1987654321",
+  "categories": ["TECHNOLOGY"],
+  "phone": "+1234567890",
   "email": "info@techsolutions.com",
   "website": "https://techsolutions.com",
   "address": {
@@ -91,62 +68,91 @@ Authorization: Bearer YOUR_JWT_TOKEN
 }
 ```
 
-### 2. Get All Entities
+### 5. Create a Relationship
+```http
+POST http://localhost:3009/api/relationship/create
+Content-Type: application/json
+Authorization: Bearer YOUR_JWT_TOKEN
 
+{
+  "userId": "YOUR_USER_ID",
+  "contactId": "CONTACT_ID_FROM_STEP_3",
+  "relation": "FRIEND",
+  "visibility": "PRIVATE"
+}
+```
+
+### 6. Create an Interaction
+```http
+POST http://localhost:3009/api/interaction/create
+Content-Type: application/json
+Authorization: Bearer YOUR_JWT_TOKEN
+
+{
+  "userId": "YOUR_USER_ID",
+  "contactId": "CONTACT_ID_FROM_STEP_3",
+  "type": "MEETING",
+  "description": "Met for coffee"
+}
+```
+
+### 7. Create a Contact Role
+```http
+POST http://localhost:3009/api/contact-role/create
+Content-Type: application/json
+Authorization: Bearer YOUR_JWT_TOKEN
+
+{
+  "contactId": "CONTACT_ID_FROM_STEP_3",
+  "entityId": "ENTITY_ID_FROM_STEP_4",
+  "role": "SOFTWARE_ENGINEER"
+}
+```
+
+---
+
+## Detailed Documentation
+
+## Table of Contents
+- [Authentication](#authentication)
+- [Contacts](#contacts)
+- [Global Entities](#global-entities)
+- [Relationships](#relationships)
+- [Interactions](#interactions)
+- [Contact Roles](#contact-roles)
+- [Notes](#notes)
+
+## Contacts
+
+### Get All Contacts
+```http
+GET http://localhost:3009/api/contact/get-all
+Authorization: Bearer YOUR_JWT_TOKEN
+```
+
+### Search Contacts
+```http
+GET http://localhost:3009/api/contact/search?q=Jane
+Authorization: Bearer YOUR_JWT_TOKEN
+```
+
+## Global Entities
+
+### Get All Entities
 ```http
 GET http://localhost:3009/api/entity/get-all
 Authorization: Bearer YOUR_JWT_TOKEN
 ```
 
-### 3. Search Entities
-
+### Search Entities
 ```http
-GET http://localhost:3009/api/entity/search?q=Tech&category=IT_SERVICES
-type=BUSINESS
+GET http://localhost:3009/api/entity/search?q=Tech&category=HEALTHCARE&type=BUSINESS
 Authorization: Bearer YOUR_JWT_TOKEN
 ```
 
 ## Relationships
 
-### 1. Create Relationship (Contact)
-
-```http
-POST http://localhost:3009/api/relationship/create
-Content-Type: application/json
-Authorization: Bearer YOUR_JWT_TOKEN
-
-{
-  "userId": "user-id-here",
-  "contactId": "contact-id-here",
-  "relation": "FRIEND",
-  "context": "College friends",
-  "strength": "STRONG",
-  "visibility": "PRIVATE",
-  "isReciprocal": true,
-  "notes": "Met in college"
-}
-```
-
-### 2. Create Relationship (Entity)
-
-```http
-POST http://localhost:3009/api/relationship/create
-Content-Type: application/json
-Authorization: Bearer YOUR_JWT_TOKEN
-
-{
-  "userId": "user-id-here",
-  "entityId": "entity-id-here",
-  "relation": "CLIENT",
-  "context": "Current client project",
-  "strength": "MODERATE",
-  "visibility": "PRIVATE",
-  "notes": "Working on project X"
-}
-```
-
-### 3. Get All Relationships
-
+### Get All Relationships
 ```http
 GET http://localhost:3009/api/relationship/get-all?userId=user-id-here
 Authorization: Bearer YOUR_JWT_TOKEN
@@ -154,31 +160,8 @@ Authorization: Bearer YOUR_JWT_TOKEN
 
 ## Interactions
 
-### 1. Create Interaction
 
-```http
-POST http://localhost:3009/api/interaction/create
-Content-Type: application/json
-Authorization: Bearer YOUR_JWT_TOKEN
-
-{
-  "userId": "user-id-here",
-  "contactId": "contact-id-here",
-  "relationshipId": "relationship-id-here",
-  "type": "MEETING",
-  "title": "Project Discussion",
-  "description": "Discussed the new project requirements and timeline.",
-  "timestamp": "2025-07-21T10:30:00Z",
-  "metadata": {
-    "location": "Conference Room A",
-    "duration": 60,
-    "topics": ["Project X", "Timeline", "Requirements"]
-  }
-}
-```
-
-### 2. Get All Interactions
-
+### Get All Interactions
 ```http
 GET http://localhost:3009/api/interaction/get-all?userId=user-id-here
 Authorization: Bearer YOUR_JWT_TOKEN
@@ -186,18 +169,18 @@ Authorization: Bearer YOUR_JWT_TOKEN
 
 ## Contact Roles
 
-### 1. Create Contact Role
-
+### Get All Contact Roles
 ```http
-POST http://localhost:3009/api/contact-role/create
-Content-Type: application/json
+GET http://localhost:3009/api/contact-role/get-all?entityId=entity-id-here
 Authorization: Bearer YOUR_JWT_TOKEN
+```
+
+## Notes
 
 {
   "contactId": "contact-id-here",
   "entityId": "entity-id-here",
   "role": "SOFTWARE_ENGINEER",
-  "title": "Senior Software Engineer",
   "startDate": "2023-01-15T00:00:00Z",
   "endDate": null,
   "metadata": {
@@ -207,8 +190,7 @@ Authorization: Bearer YOUR_JWT_TOKEN
 }
 ```
 
-### 2. Get All Contact Roles
-
+### Get All Contact Roles
 ```http
 GET http://localhost:3009/api/contact-role/get-all?entityId=entity-id-here
 Authorization: Bearer YOUR_JWT_TOKEN

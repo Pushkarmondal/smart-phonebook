@@ -1227,7 +1227,6 @@ app.post("/api/contact-role/create", async (req, res) => {
             role,
             startDate,
             endDate,
-            isCurrent = true,
             metadata = {}
         } = req.body;
 
@@ -1271,7 +1270,7 @@ app.post("/api/contact-role/create", async (req, res) => {
                 contactId,
                 entityId,
                 role,
-                endDate: isCurrent ? null : undefined
+                endDate: endDate ? new Date(endDate) : null
             }
         });
 
