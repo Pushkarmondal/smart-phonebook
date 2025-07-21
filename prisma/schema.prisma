@@ -1,0 +1,101 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ContactType {
+  PERSON
+  BUSINESS
+}
+
+enum RelationType {
+  FAMILY
+  FRIEND
+  HIRED
+  BUSINESS
+}
+
+enum Visibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum InteractionType {
+  CALL
+  EMAIL
+  MESSAGE
+  HIRE
+}
+
+model User {
+  id            String         @id @default(uuid())
+  name          String
+  email         String         @unique
+  phone         String?
+  password      String
+  relationships Relationship[] @relation("UserRelationships")
+  addedContacts Contact[]      @relation("AddedByUser")
+  interactions  Interaction[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Contact {
+  id            String         @id @default(uuid())
+  name          String
+  type          ContactType
+  phone         String?
+  email         String?
+  location      String?
+  tags          String[]
+  addedBy       User?          @relation("AddedByUser", fields: [addedById], references: [id])
+  addedById     String?
+  relationships Relationship[] @relation("ContactRelationships")
+  interactions  Interaction[]
+  roles         ContactRole[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Relationship {
+  id         String       @id @default(uuid())
+  user       User         @relation("UserRelationships", fields: [userId], references: [id])
+  userId     String
+  contact    Contact      @relation("ContactRelationships", fields: [contactId], references: [id])
+  contactId  String
+  relation   RelationType
+  visibility Visibility   @default(PRIVATE)
+  notes      String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  @@unique([userId, contactId, relation])
+}
+
+model Interaction {
+  id        String          @id @default(uuid())
+  user      User            @relation(fields: [userId], references: [id])
+  userId    String
+  contact   Contact         @relation(fields: [contactId], references: [id])
+  contactId String
+  type      InteractionType
+  timestamp DateTime        @default(now())
+  duration  Int? 
+  notes     String?
+  metadata  Json?
+  createdAt DateTime        @default(now())
+}
+
+model ContactRole {
+  id        String   @id @default(uuid())
+  contact   Contact  @relation(fields: [contactId], references: [id])
+  contactId String
+  role      String
+  location  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
