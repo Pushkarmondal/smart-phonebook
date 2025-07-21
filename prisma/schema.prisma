@@ -160,9 +160,11 @@ model Interaction {
   entity      GlobalEntity?   @relation(fields: [entityId], references: [id])
   entityId    String?
   type        InteractionType
+  title       String?         // Title or subject of the interaction
+  description String?         // Detailed description or notes
   timestamp   DateTime        @default(now())
-  duration    Int? 
-  notes       String?
+  duration    Int?            // Duration in seconds
+  notes       String?         // Additional notes
   metadata    Json?           // Additional context, e.g., call recording URL, email content preview
   relatedTo   Interaction?    @relation("RelatedInteractions", fields: [relatedToId], references: [id])
   relatedToId String?
@@ -170,6 +172,7 @@ model Interaction {
   relationship Relationship?  @relation(fields: [relationshipId], references: [id])
   relationshipId String?
   createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
   
   @@index([userId])
   @@index([contactId])

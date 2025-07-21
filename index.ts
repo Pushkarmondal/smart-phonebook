@@ -857,6 +857,662 @@ app.post("/api/entity/create", async(req, res) => {
     }
 });
 
+// ====================================
+// INTERACTION ENDPOINTS
+// ====================================
+
+// CREATE Interaction
+app.post("/api/interaction/create", async (req, res) => {
+    try {
+        const {
+            userId,
+            contactId,
+            entityId,
+            relationshipId,
+            type,
+            title,
+            description,
+            timestamp = new Date(),
+            metadata = {}
+        } = req.body;
+
+        // Validate input
+        if (!userId || !type) {
+            return res.status(400).json({
+                success: false,
+                error: "userId and type are required!"
+            });
+        }
+
+        // Check if either contactId or entityId is provided, but not both
+        if ((!contactId && !entityId) || (contactId && entityId)) {
+            return res.status(400).json({
+                success: false,
+                error: "Either contactId or entityId must be provided, but not both"
+            });
+        }
+
+        // Verify user exists
+        const userExists = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { id: true }
+        });
+        
+        if (!userExists) {
+            return res.status(404).json({
+                success: false,
+                error: "User not found"
+            });
+        }
+
+        // Verify contact exists if provided
+        if (contactId) {
+            const contactExists = await prisma.contact.findUnique({
+                where: { id: contactId },
+                select: { id: true }
+            });
+            
+            if (!contactExists) {
+                return res.status(404).json({
+                    success: false,
+                    error: "Contact not found"
+                });
+            }
+        }
+
+        // Verify entity exists if provided
+        if (entityId) {
+            const entityExists = await prisma.globalEntity.findUnique({
+                where: { id: entityId },
+                select: { id: true }
+            });
+            
+            if (!entityExists) {
+                return res.status(404).json({
+                    success: false,
+                    error: "Entity not found"
+                });
+            }
+        }
+
+        // Verify relationship exists if provided
+        if (relationshipId) {
+            const relationshipExists = await prisma.relationship.findUnique({
+                where: { id: relationshipId },
+                select: { id: true }
+            });
+            
+            if (!relationshipExists) {
+                return res.status(404).json({
+                    success: false,
+                    error: "Relationship not found"
+                });
+            }
+        }
+
+        // Create the interaction
+        const interaction = await prisma.interaction.create({
+            data: {
+                userId,
+                contactId,
+                entityId,
+                relationshipId,
+                type,
+                title,
+                description,
+                timestamp: new Date(timestamp),
+                metadata
+            },
+            include: {
+                user: {
+                    select: { id: true, name: true, email: true }
+                },
+                contact: contactId ? {
+                    select: { id: true, name: true, email: true }
+                } : undefined,
+                entity: entityId ? {
+                    select: { id: true, name: true, type: true }
+                } : undefined,
+                relationship: relationshipId ? {
+                    select: { id: true, relation: true, strength: true }
+                } : undefined
+            }
+        });
+
+        return res.status(201).json({
+            success: true,
+            message: "Interaction created successfully!",
+            data: interaction
+        });
+    } catch (error) {
+        console.error("Error creating interaction:", error);
+        return res.status(500).json({
+            success: false,
+            error: "Internal server error in Create Interaction route!"
+        });
+    }
+});
+
+// GET all interactions with filtering
+app.get("/api/interaction/get-all", async (req, res) => {
+    try {
+        const { 
+            userId, 
+            contactId, 
+            entityId, 
+            relationshipId,
+            type,
+            startDate,
+            endDate
+        } = req.query;
+
+        const where: any = {};
+
+        if (userId) where.userId = userId;
+        if (contactId) where.contactId = contactId;
+        if (entityId) where.entityId = entityId;
+        if (relationshipId) where.relationshipId = relationshipId;
+        if (type) where.type = type;
+
+        // Date range filtering
+        if (startDate || endDate) {
+            where.timestamp = {};
+            if (startDate) where.timestamp.gte = new Date(startDate as string);
+            if (endDate) where.timestamp.lte = new Date(endDate as string);
+        }
+
+        const interactions = await prisma.interaction.findMany({
+            where,
+            include: {
+                user: {
+                    select: { id: true, name: true, email: true }
+                },
+                contact: {
+                    select: { id: true, name: true, email: true }
+                },
+                entity: {
+                    select: { id: true, name: true, type: true }
+                },
+                relationship: {
+                    select: { id: true, relation: true, strength: true }
+                }
+            },
+            orderBy: {
+                timestamp: 'desc'
+            }
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: "Interactions fetched successfully!",
+            data: interactions,
+            meta: {
+                count: interactions.length
+            }
+        });
+    } catch (error) {
+        console.error("Error fetching interactions:", error);
+        return res.status(500).json({
+            success: false,
+            error: "Internal server error in Get All Interactions route!"
+        });
+    }
+});
+
+// GET interaction by ID
+app.get("/api/interaction/get-by-id/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const interaction = await prisma.interaction.findUnique({
+            where: { id },
+            include: {
+                user: {
+                    select: { id: true, name: true, email: true }
+                },
+                contact: {
+                    select: { id: true, name: true, email: true, phone: true }
+                },
+                entity: {
+                    select: { id: true, name: true, type: true, categories: true }
+                },
+                relationship: {
+                    select: { 
+                        id: true, 
+                        relation: true, 
+                        strength: true,
+                        context: true,
+                        user: {
+                            select: { id: true, name: true, email: true }
+                        }
+                    }
+                }
+            }
+        });
+
+        if (!interaction) {
+            return res.status(404).json({
+                success: false,
+                error: "Interaction not found!"
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Interaction fetched successfully!",
+            data: interaction
+        });
+    } catch (error) {
+        console.error("Error fetching interaction:", error);
+        return res.status(500).json({
+            success: false,
+            error: "Internal server error in Get Interaction By ID route!"
+        });
+    }
+});
+
+// UPDATE interaction
+app.put("/api/interaction/update/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
+        const {
+            type,
+            title,
+            description,
+            timestamp,
+            metadata
+        } = req.body;
+
+        // Check if interaction exists
+        const existing = await prisma.interaction.findUnique({
+            where: { id }
+        });
+
+        if (!existing) {
+            return res.status(404).json({
+                success: false,
+                error: "Interaction not found"
+            });
+        }
+
+        // Prepare update data
+        const updateData: any = {
+            ...(type !== undefined && { type }),
+            ...(title !== undefined && { title }),
+            ...(description !== undefined && { description }),
+            ...(timestamp !== undefined && { timestamp: new Date(timestamp) }),
+            ...(metadata !== undefined && { metadata }),
+            updatedAt: new Date()
+        };
+
+        // Update the interaction
+        const updated = await prisma.interaction.update({
+            where: { id },
+            data: updateData,
+            include: {
+                user: {
+                    select: { id: true, name: true, email: true }
+                },
+                contact: existing.contactId ? {
+                    select: { id: true, name: true, email: true }
+                } : undefined,
+                entity: existing.entityId ? {
+                    select: { id: true, name: true, type: true }
+                } : undefined,
+                relationship: existing.relationshipId ? {
+                    select: { id: true, relation: true, strength: true }
+                } : undefined
+            }
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: "Interaction updated successfully!",
+            data: updated
+        });
+    } catch (error) {
+        console.error("Error updating interaction:", error);
+        return res.status(500).json({
+            success: false,
+            error: "Internal server error in Update Interaction route!"
+        });
+    }
+});
+
+// DELETE interaction
+app.delete("/api/interaction/delete/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Check if interaction exists
+        const interaction = await prisma.interaction.findUnique({
+            where: { id }
+        });
+
+        if (!interaction) {
+            return res.status(404).json({
+                success: false,
+                error: "Interaction not found"
+            });
+        }
+
+        // Delete the interaction
+        await prisma.interaction.delete({
+            where: { id }
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: "Interaction deleted successfully!"
+        });
+    } catch (error) {
+        console.error("Error deleting interaction:", error);
+        return res.status(500).json({
+            success: false,
+            error: "Internal server error in Delete Interaction route!"
+        });
+    }
+});
+
+// ====================================
+// CONTACT ROLE ENDPOINTS
+// ====================================
+
+// CREATE Contact Role
+app.post("/api/contact-role/create", async (req, res) => {
+    try {
+        const {
+            contactId,
+            entityId,
+            role,
+            startDate,
+            endDate,
+            isCurrent = true,
+            metadata = {}
+        } = req.body;
+
+        // Validate input
+        if (!contactId || !entityId || !role) {
+            return res.status(400).json({
+                success: false,
+                error: "contactId, entityId, and role are required!"
+            });
+        }
+
+        // Verify contact exists
+        const contactExists = await prisma.contact.findUnique({
+            where: { id: contactId },
+            select: { id: true }
+        });
+        
+        if (!contactExists) {
+            return res.status(404).json({
+                success: false,
+                error: "Contact not found"
+            });
+        }
+
+        // Verify entity exists
+        const entityExists = await prisma.globalEntity.findUnique({
+            where: { id: entityId },
+            select: { id: true }
+        });
+        
+        if (!entityExists) {
+            return res.status(404).json({
+                success: false,
+                error: "Entity not found"
+            });
+        }
+
+        // Check for existing role to prevent duplicates
+        const existingRole = await prisma.contactRole.findFirst({
+            where: {
+                contactId,
+                entityId,
+                role,
+                endDate: isCurrent ? null : undefined
+            }
+        });
+
+        if (existingRole) {
+            return res.status(409).json({
+                success: false,
+                error: "A role with these parameters already exists"
+            });
+        }
+
+        // Create the contact role
+        const contactRole = await prisma.contactRole.create({
+            data: {
+                contactId,
+                entityId,
+                role,
+                startDate: startDate ? new Date(startDate) : new Date(),
+                endDate: endDate ? new Date(endDate) : null,
+                metadata
+            },
+            include: {
+                contact: {
+                    select: { id: true, name: true, email: true, phone: true }
+                },
+                entity: {
+                    select: { id: true, name: true, type: true }
+                }
+            }
+        });
+
+        return res.status(201).json({
+            success: true,
+            message: "Contact role created successfully!",
+            data: contactRole
+        });
+    } catch (error) {
+        console.error("Error creating contact role:", error);
+        return res.status(500).json({
+            success: false,
+            error: "Internal server error in Create Contact Role route!"
+        });
+    }
+});
+
+// GET all contact roles with filtering
+app.get("/api/contact-role/get-all", async (req, res) => {
+    try {
+        const { 
+            contactId, 
+            entityId, 
+            role,
+        } = req.query;
+
+        const where: any = {};
+
+        if (contactId) where.contactId = contactId;
+        if (entityId) where.entityId = entityId;
+        if (role) where.role = role;
+
+        const contactRoles = await prisma.contactRole.findMany({
+            where,
+            include: {
+                contact: {
+                    select: { id: true, name: true, email: true, phone: true }
+                },
+                entity: {
+                    select: { id: true, name: true, type: true, categories: true }
+                }
+            },
+            orderBy: [
+                { startDate: 'desc' }
+            ]
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: "Contact roles fetched successfully!",
+            data: contactRoles,
+            meta: {
+                count: contactRoles.length
+            }
+        });
+    } catch (error) {
+        console.error("Error fetching contact roles:", error);
+        return res.status(500).json({
+            success: false,
+            error: "Internal server error in Get All Contact Roles route!"
+        });
+    }
+});
+
+// GET contact role by ID
+app.get("/api/contact-role/get-by-id/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const contactRole = await prisma.contactRole.findUnique({
+            where: { id },
+            include: {
+                contact: {
+                    select: { 
+                        id: true, 
+                        name: true, 
+                        email: true, 
+                        phone: true,
+                        location: true
+                    }
+                },
+                entity: {
+                    select: { 
+                        id: true, 
+                        name: true, 
+                        type: true, 
+                        categories: true,
+                        location: true
+                    }
+                }
+            }
+        });
+
+        if (!contactRole) {
+            return res.status(404).json({
+                success: false,
+                error: "Contact role not found!"
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Contact role fetched successfully!",
+            data: contactRole
+        });
+    } catch (error) {
+        console.error("Error fetching contact role:", error);
+        return res.status(500).json({
+            success: false,
+            error: "Internal server error in Get Contact Role By ID route!"
+        });
+    }
+});
+
+// UPDATE contact role
+app.put("/api/contact-role/update/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
+        const {
+            role,
+            title,
+            startDate,
+            endDate,
+            isCurrent,
+            metadata
+        } = req.body;
+
+        // Check if contact role exists
+        const existing = await prisma.contactRole.findUnique({
+            where: { id }
+        });
+
+        if (!existing) {
+            return res.status(404).json({
+                success: false,
+                error: "Contact role not found"
+            });
+        }
+
+        // Prepare update data
+        const updateData: any = {
+            ...(role !== undefined && { role }),
+            ...(title !== undefined && { title }),
+            ...(startDate !== undefined && { startDate: new Date(startDate) }),
+            ...(endDate !== undefined && { endDate: endDate ? new Date(endDate) : null }),
+            ...(isCurrent !== undefined && { isCurrent }),
+            ...(metadata !== undefined && { metadata }),
+            updatedAt: new Date()
+        };
+
+        // Update the contact role
+        const updated = await prisma.contactRole.update({
+            where: { id },
+            data: updateData,
+            include: {
+                contact: {
+                    select: { id: true, name: true, email: true, phone: true }
+                },
+                entity: {
+                    select: { id: true, name: true, type: true }
+                }
+            }
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: "Contact role updated successfully!",
+            data: updated
+        });
+    } catch (error) {
+        console.error("Error updating contact role:", error);
+        return res.status(500).json({
+            success: false,
+            error: "Internal server error in Update Contact Role route!"
+        });
+    }
+});
+
+// DELETE contact role
+app.delete("/api/contact-role/delete/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Check if contact role exists
+        const contactRole = await prisma.contactRole.findUnique({
+            where: { id }
+        });
+
+        if (!contactRole) {
+            return res.status(404).json({
+                success: false,
+                error: "Contact role not found"
+            });
+        }
+
+        // Delete the contact role
+        await prisma.contactRole.delete({
+            where: { id }
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: "Contact role deleted successfully!"
+        });
+    } catch (error) {
+        console.error("Error deleting contact role:", error);
+        return res.status(500).json({
+            success: false,
+            error: "Internal server error in Delete Contact Role route!"
+        });
+    }
+});
+
+// Start the server
 app.listen(PORT, () => {
     console.log(`Server started on port ${PORT}`);
 });
