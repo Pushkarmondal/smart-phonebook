@@ -8,94 +8,233 @@ datasource db {
 }
 
 enum ContactType {
-  PERSON
+  PERSONAL
   BUSINESS
 }
 
-enum RelationType {
-  FAMILY
-  FRIEND
-  HIRED
+enum EntityType {
   BUSINESS
+  PROFESSIONAL
+  SERVICE
+  ORGANIZATION
+  OTHER
+}
+
+enum Category {
+  CARPENTER
+  PLUMBER
+  ELECTRICIAN
+  HOTEL
+  RESTAURANT
+  RETAIL
+  HEALTHCARE
+  EDUCATION
+  FINANCE
+  TRANSPORTATION
+  OTHER
+}
+
+enum RelationType {
+  // Personal relationships
+  FRIEND
+  FAMILY
+  COLLEAGUE
+  ACQUAINTANCE
+  
+  // Professional relationships
+  SERVICE_PROVIDER
+  CLIENT
+  VENDOR
+  PARTNER
+  
+  // Contextual relationships
+  RECOMMENDED
+  HIRED
+  WORKED_WITH
+  
+  OTHER
 }
 
 enum Visibility {
   PUBLIC
   PRIVATE
+  CONNECTIONS
+  CUSTOM
 }
 
 enum InteractionType {
   CALL
   EMAIL
   MESSAGE
-  HIRE
+  MEETING
+  TRANSACTION
+  REVIEW
+  RECOMMENDATION
+  OTHER
+}
+
+enum RelationshipStrength {
+  WEAK      // Just met/connected
+  MODERATE  // Some interaction
+  STRONG    // Frequent interaction
+  TRUSTED   // Highly trusted
 }
 
 model User {
-  id            String         @id @default(uuid())
-  name          String
-  email         String         @unique
-  phone         String?
+  id            String        @id @default(uuid())
+  name          String?
+  email         String        @unique
+  phone         String?       @unique
   password      String
-  relationships Relationship[] @relation("UserRelationships")
-  addedContacts Contact[]      @relation("AddedByUser")
+  contacts      Contact[]     @relation("UserContacts")
+  relationships Relationship[]
   interactions  Interaction[]
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  preferences   Json?         // User preferences for privacy, notifications, etc.
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 }
 
 model Contact {
-  id            String         @id @default(uuid())
-  name          String
-  type          ContactType
-  phone         String?
-  email         String?
-  location      String?
-  tags          String[]
-  addedBy       User?          @relation("AddedByUser", fields: [addedById], references: [id])
-  addedById     String?
+  id          String          @id @default(uuid())
+  name        String
+  type        ContactType
+  phone       String?
+  email       String?
+  location    String?
+  address     Json?           // Structured address information
+  tags        String[]
+  metadata    Json?           // Additional metadata
+  addedBy     User            @relation("UserContacts", fields: [addedById], references: [id])
+  addedById   String
   relationships Relationship[] @relation("ContactRelationships")
-  interactions  Interaction[]
-  roles         ContactRole[]
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  interactions Interaction[]
+  roles       ContactRole[]
+  linkedEntities GlobalEntity[] @relation("ContactEntityLinks") // Links to global entities
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  
+  @@index([name])
+  @@index([email])
+  @@index([phone])
+  @@index([addedById])
 }
 
 model Relationship {
-  id         String       @id @default(uuid())
-  user       User         @relation("UserRelationships", fields: [userId], references: [id])
-  userId     String
-  contact    Contact      @relation("ContactRelationships", fields: [contactId], references: [id])
-  contactId  String
-  relation   RelationType
-  visibility Visibility   @default(PRIVATE)
-  notes      String?
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
+  id            String             @id @default(uuid())
+  user          User               @relation(fields: [userId], references: [id])
+  userId        String
+  
+  // Either contact or entity must be set, but not both
+  contact       Contact?           @relation("ContactRelationships", fields: [contactId], references: [id])
+  contactId     String?
+  
+  entity        GlobalEntity?      @relation(fields: [entityId], references: [id])
+  entityId      String?
+  
+  relation      RelationType
+  context       String?            // Free text for relationship context
+  strength      RelationshipStrength @default(WEAK)
+  visibility    Visibility         @default(PRIVATE)
+  isReciprocal  Boolean           @default(false)
+  metadata      Json?             // Additional metadata
+  notes         String?
+  interactions  Interaction[]
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
 
-  @@unique([userId, contactId, relation])
+  @@index([userId])
+  @@index([contactId])
+  @@index([entityId])
+  
+  // Unique constraints for user-contact and user-entity relationships
+  @@unique([userId, contactId, relation], name: "user_contact_relation")
+  @@unique([userId, entityId, relation], name: "user_entity_relation")
 }
 
 model Interaction {
-  id        String          @id @default(uuid())
-  user      User            @relation(fields: [userId], references: [id])
-  userId    String
-  contact   Contact         @relation(fields: [contactId], references: [id])
-  contactId String
-  type      InteractionType
-  timestamp DateTime        @default(now())
-  duration  Int? 
-  notes     String?
-  metadata  Json?
-  createdAt DateTime        @default(now())
+  id          String          @id @default(uuid())
+  user        User            @relation(fields: [userId], references: [id])
+  userId      String
+  contact     Contact?        @relation(fields: [contactId], references: [id])
+  contactId   String?
+  entity      GlobalEntity?   @relation(fields: [entityId], references: [id])
+  entityId    String?
+  type        InteractionType
+  timestamp   DateTime        @default(now())
+  duration    Int? 
+  notes       String?
+  metadata    Json?           // Additional context, e.g., call recording URL, email content preview
+  relatedTo   Interaction?    @relation("RelatedInteractions", fields: [relatedToId], references: [id])
+  relatedToId String?
+  relatedInteractions Interaction[] @relation("RelatedInteractions")
+  relationship Relationship?  @relation(fields: [relationshipId], references: [id])
+  relationshipId String?
+  createdAt   DateTime        @default(now())
+  
+  @@index([userId])
+  @@index([contactId])
+  @@index([entityId])
+  @@index([timestamp])
+  @@index([type])
+}
+
+// Global entities represent businesses, professionals, and organizations
+// in the global Yellow Pages-like registry
+model GlobalEntity {
+  id          String         @id @default(uuid())
+  name        String
+  type        EntityType
+  description String?
+  categories  Category[]
+  tags        String[]
+  phone       String?
+  email       String?
+  website     String?
+  address     Json?          // Structured address information
+  location    Json?          // GeoJSON for spatial queries
+  metadata    Json?          // Additional metadata
+  relationships Relationship[]
+  interactions Interaction[]
+  contacts    Contact[]      @relation("ContactEntityLinks")
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  contactRoles ContactRole[]
+  
+  @@index([name])
+  @@index([type])
+  @@index([phone])
+  @@index([email])
 }
 
 model ContactRole {
-  id        String   @id @default(uuid())
-  contact   Contact  @relation(fields: [contactId], references: [id])
-  contactId String
-  role      String
-  location  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String       @id @default(uuid())
+  
+  // Required relationship to Contact
+  contact     Contact      @relation(fields: [contactId], references: [id])
+  contactId   String
+  
+  // Required relationship to GlobalEntity
+  entity      GlobalEntity @relation(fields: [entityId], references: [id])
+  entityId    String
+  
+  // Role details
+  role        String      // e.g., "Receptionist", "Manager"
+  department  String?     // e.g., "Front Desk", "Customer Service"
+  location    String?     // Physical location/office
+  isPrimary   Boolean     @default(false)
+  startDate   DateTime?   // When this role started
+  endDate     DateTime?   // When this role ended (if applicable)
+  notes       String?
+  metadata    Json?       // Additional role-specific metadata
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  // Ensure unique role assignments
+  @@unique([contactId, entityId, role])
+  
+  // Indexes for better query performance
+  @@index([contactId])
+  @@index([entityId])
+  @@index([role])
+  @@index([isPrimary])
 }

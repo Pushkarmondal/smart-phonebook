@@ -1,7 +1,7 @@
-# API Documentation
+# Smart Phonebook API Documentation
 
 ## Base URL
-`https://api.smartphonebook.com/v1`
+`http://localhost:3009/api`
 
 ## Authentication
 All endpoints (except `/auth/*`) require a valid JWT token in the `Authorization` header.
@@ -19,29 +19,30 @@ Authorization: Bearer <your-jwt-token>
 - `POST /auth/logout` - Invalidate token
 
 ### Contacts
-- `GET /contacts` - List all contacts (paginated)
-- `POST /contacts` - Create new contact
-- `GET /contacts/:id` - Get contact details
-- `PUT /contacts/:id` - Update contact
-- `DELETE /contacts/:id` - Delete contact
-- `GET /contacts/search?q=` - Search contacts
+- `GET /contact/get-all` - List all contacts
+- `POST /contact/create` - Create new contact
+- `GET /contact/get-by-id/:id` - Get contact details
+- `PUT /contact/update/:id` - Update contact
+- `DELETE /contact/delete/:id` - Delete contact
+- `GET /contact/search?q=` - Search contacts
 
 ### Relationships
-- `POST /relationships` - Create relationship
-- `GET /relationships` - List all relationships
-- `GET /relationships/:id` - Get relationship details
-- `PUT /relationships/:id` - Update relationship
-- `DELETE /relationships/:id` - Remove relationship
+- `POST /relationship/create` - Create relationship
+- `GET /relationship/get-all` - List all relationships
+- `GET /relationship/get-by-id/:id` - Get relationship details
+- `PUT /relationship/update/:id` - Update relationship
+- `DELETE /relationship/delete/:id` - Remove relationship
 
-### Businesses
-- `GET /businesses` - List businesses
-- `POST /businesses` - Add new business
-- `GET /businesses/:id` - Get business details
-- `GET /businesses/search?q=` - Search businesses
-- `GET /businesses/:id/employees` - List employees
+### Interactions
+- `POST /interaction/create` - Create interaction record
+- `GET /interaction/get-all` - List all interactions
+- `GET /interaction/get-by-id/:id` - Get interaction details
+- `GET /interaction/contact/:contactId` - Get interactions for a specific contact
 
-### AI Queries
-- `POST /ai/query` - Process natural language query
+### Contact Roles
+- `POST /contact-role/create` - Assign role to contact
+- `GET /contact-role/contact/:contactId` - Get roles for a contact
+- `DELETE /contact-role/delete/:id` - Remove role from contact
 
 ## Response Format
 
