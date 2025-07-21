@@ -1419,10 +1419,8 @@ app.put("/api/contact-role/update/:id", async (req, res) => {
         const { id } = req.params;
         const {
             role,
-            title,
             startDate,
             endDate,
-            isCurrent,
             metadata
         } = req.body;
 
@@ -1441,10 +1439,8 @@ app.put("/api/contact-role/update/:id", async (req, res) => {
         // Prepare update data
         const updateData: any = {
             ...(role !== undefined && { role }),
-            ...(title !== undefined && { title }),
             ...(startDate !== undefined && { startDate: new Date(startDate) }),
             ...(endDate !== undefined && { endDate: endDate ? new Date(endDate) : null }),
-            ...(isCurrent !== undefined && { isCurrent }),
             ...(metadata !== undefined && { metadata }),
             updatedAt: new Date()
         };
