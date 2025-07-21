@@ -2,6 +2,7 @@ import express from "express";
 import { ContactType, PrismaClient } from "@prisma/client";
 import bcrypt from 'bcryptjs';
 import jsonwebtoken from 'jsonwebtoken';
+import { fetchUserContext, runGemini } from "./query";
 
 const prisma = new PrismaClient();
 const app = express();
@@ -1507,7 +1508,29 @@ app.delete("/api/contact-role/delete/:id", async (req, res) => {
     }
 });
 
-// Start the server
+app.post('/api/query', express.json(), async (req, res) => {
+    try {
+        const { question, userId } = req.body;
+        
+        if (!question || !userId) {
+            return res.status(400).json({
+                success: false,
+                error: 'Question and userId are required'
+            });
+        }
+
+        const result = await runGemini(question, userId);
+        res.json(result);
+    } catch (err) {
+        console.error('Query Error:', err);
+        res.status(500).json({ 
+            success: false,
+            error: 'Failed to process your query',
+            details: process.env.NODE_ENV === 'development' ? err : undefined
+        });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`Server started on port ${PORT}`);
 });
