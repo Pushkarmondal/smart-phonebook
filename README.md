@@ -1,5 +1,7 @@
 # Smart Phonebook Backend
 
+> **TL;DR:** A smart contact management system that understands relationships between people and businesses. It lets you ask questions like "Show me carpenters my friends hired" and get relevant results by combining natural language processing (Gemini AI) with structured data from your contacts and their relationships.
+
 A modern, AI-powered phonebook backend that understands relationships between contacts and provides intelligent search capabilities. This application serves as a comprehensive contact management system with advanced features for personal and business use.
 
 ## ✨ Features
@@ -228,6 +230,164 @@ Error responses follow this format:
 ### Rate Limiting
 - 100 requests per minute per IP address
 - 1000 requests per hour per user
+
+## 🏗️ System Design
+
+### Overview
+The Smart Phonebook is designed to be an intelligent contact management system that understands relationships between contacts and provides AI-powered search capabilities. The system consists of several key components working together to deliver a seamless experience.
+
+### Architecture
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────────┐
+│                 │     │                 │     │                     │
+│  Mobile/Web     ├────►│  API Gateway    ├────►│  Authentication    │
+│  Application    │     │  (Reverse Proxy)│     │  Service           │
+│                 │     │                 │     │                     │
+└─────────────────┘     └────────┬────────┘     └─────────────────────┘
+                                 │
+                                 ▼
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────────┐
+│                 │     │                 │     │                     │
+│  AI/ML          │     │  Application    │     │  Relationship      │
+│  Service        │◄───►│  Service        │◄───►│  Graph Service     │
+│  (Gemini)       │     │  (Core Logic)   │     │  (Neo4j)           │
+│                 │     │                 │     │                     │
+└─────────────────┘     └───────┬─────────┘     └─────────────────────┘
+                                │
+                                ▼
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────────┐
+│                 │     │                 │     │                     │
+│  Cache Layer    │     │  Primary        │     │  Search Engine      │
+│  (Redis)        │◄───►│  Database       │◄───►│  (Elasticsearch)    │
+│                 │     │  (PostgreSQL)   │     │                     │
+└─────────────────┘     └─────────────────┘     └─────────────────────┘
+```
+
+### Core Components
+
+#### 1. Authentication Service
+- Handles user registration, login, and JWT token management
+- Implements role-based access control (RBAC)
+- Manages OAuth2 integration for third-party logins
+
+#### 2. Contact Management
+- Stores and manages personal and business contacts
+- Supports rich contact information (multiple phone numbers, emails, addresses)
+- Handles contact deduplication and merging
+
+#### 3. Relationship Graph
+- Models relationships between users and contacts
+- Supports different relationship types (family, friend, colleague, etc.)
+- Implements privacy controls for relationship visibility
+- Uses graph database (Neo4j) for efficient relationship queries
+
+#### 4. Global YellowPages
+- Public directory of businesses and services
+- Categorized listings with searchable metadata
+- Verified business information
+- User reviews and ratings
+
+#### 5. AI/ML Service
+- Processes natural language queries
+- Understands user intent and context
+- Generates structured queries from natural language
+- Provides smart suggestions and insights
+
+#### 6. Search Engine
+- Full-text search across contacts and businesses
+- Faceted search with filters
+- Location-based search
+- Typo tolerance and fuzzy matching
+
+### Data Models
+
+#### Users
+```typescript
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  passwordHash: string;
+  preferences: UserPreferences;
+  createdAt: DateTime;
+  updatedAt: DateTime;
+}
+```
+
+#### Contacts
+```typescript
+interface Contact {
+  id: string;
+  name: string;
+  type: 'PERSONAL' | 'BUSINESS';
+  phoneNumbers: PhoneNumber[];
+  emails: Email[];
+  addresses: Address[];
+  tags: string[];
+  notes: string;
+  addedById: string;
+  isFavorite: boolean;
+  createdAt: DateTime;
+  updatedAt: DateTime;
+}
+```
+
+#### Relationships
+```typescript
+interface Relationship {
+  id: string;
+  fromContactId: string;
+  toContactId: string;
+  type: RelationshipType;
+  notes: string;
+  strength: number; // 1-10
+  isReciprocal: boolean;
+  privacy: 'PRIVATE' | 'CONNECTIONS' | 'PUBLIC';
+  createdAt: DateTime;
+  updatedAt: DateTime;
+}
+```
+
+### AI Query Processing
+
+1. **Input**: Natural language query (e.g., "Show me carpenters my friends hired last year")
+2. **Processing**:
+   - Intent recognition
+   - Entity extraction (carpenters, friends, time frame)
+   - Relationship mapping
+   - Privacy filtering
+3. **Query Generation**:
+   - Converts to structured database queries
+   - Applies relevant filters and joins
+4. **Result Processing**:
+   - Ranks results by relevance
+   - Formats response
+   - Adds contextual information
+
+### Security & Privacy
+
+- End-to-end encryption for sensitive data
+- Granular privacy controls
+- Audit logging for all data access
+- Regular security audits
+- GDPR/CCPA compliance
+
+### Future Enhancements
+
+1. **Voice Interface**
+   - Voice commands for hands-free operation
+   - Call transcription and analysis
+
+2. **Smart Suggestions**
+   - Proactive contact suggestions
+   - Meeting preparation insights
+
+3. **Integration**
+   - Calendar integration
+   - Email and messaging apps
+   - Social media platforms
 
 ## 🧪 Running Tests
 
