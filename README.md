@@ -238,31 +238,14 @@ The Smart Phonebook is designed to be an intelligent contact management system t
 
 ### Architecture
 
-```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────────┐
-│                 │     │                 │     │                     │
-│  Mobile/Web     ├────►│  API Gateway    ├────►│  Authentication    │
-│  Application    │     │  (Reverse Proxy)│     │  Service           │
-│                 │     │                 │     │                     │
-└─────────────────┘     └────────┬────────┘     └─────────────────────┘
-                                 │
-                                 ▼
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────────┐
-│                 │     │                 │     │                     │
-│  AI/ML          │     │  Application    │     │  Relationship      │
-│  Service        │◄───►│  Service        │◄───►│  Graph Service     │
-│  (Gemini)       │     │  (Core Logic)   │     │  (Neo4j)           │
-│                 │     │                 │     │                     │
-└─────────────────┘     └───────┬─────────┘     └─────────────────────┘
-                                │
-                                ▼
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────────┐
-│                 │     │                 │     │                     │
-│  Cache Layer    │     │  Primary        │     │  Search Engine      │
-│  (Redis)        │◄───►│  Database       │◄───►│  (Elasticsearch)    │
-│                 │     │  (PostgreSQL)   │     │                     │
-└─────────────────┘     └─────────────────┘     └─────────────────────┘
-```
+#### High-Level Overview
+![High Level Architecture](/public/images/Screenshot%202025-07-22%20at%2009.12.28.png)
+
+#### Component Interaction
+![Component Interaction](/public/images/Screenshot%202025-07-22%20at%2009.13.34.png)
+
+#### Data Flow
+![Data Flow](/public/images/Screenshot%202025-07-22%20at%2009.13.52.png)
 
 ### Core Components
 
